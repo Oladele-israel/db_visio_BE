@@ -1,5 +1,4 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { RedisService } from './redis.service';
 import { randomUUID } from 'crypto';
 import { SessionData } from './constant';
 import { JwtService } from '@nestjs/jwt';
@@ -8,14 +7,14 @@ import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import type { Cache } from 'cache-manager';
 import { Logger } from '@nestjs/common';
 
-const ACCESS_TTL = 900000;
+const ACCESS_TTL = 900000;  //TODO: Abstract this later
 const REFRESH_TTL = 1209600000;
 
 @Injectable()
 export class SessionService {
     private readonly logger = new Logger(SessionService.name);
 
-    constructor(private readonly redisService: RedisService,
+    constructor(
         private readonly jwtService: JwtService,
         private readonly configService: ConfigService,
         @Inject(CACHE_MANAGER) private cacheManager: Cache

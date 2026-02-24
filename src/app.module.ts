@@ -10,6 +10,7 @@ import KeyvRedis from '@keyv/redis';
 import { Keyv } from 'keyv';
 import { CacheableMemory } from 'cacheable';
 import { CacheModule } from '@nestjs/cache-manager';
+import { DbAgentModule } from './api/db-agent/db-agent.module';
 
 @Module({
  imports: [
@@ -44,7 +45,7 @@ import { CacheModule } from '@nestjs/cache-manager';
         };
       },
     }),
-
+    DbAgentModule
   ],
   controllers: [AppController],
   providers: [AppService],
