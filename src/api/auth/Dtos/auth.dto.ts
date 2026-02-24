@@ -7,7 +7,7 @@ export class registerUserDto{
     email: string
 
     @IsNotEmpty()
-    @IsEmail()
+    @IsString()
     password: string
 
     @IsNotEmpty()
@@ -24,6 +24,6 @@ export class loginUserDto{
     email: string
 
     @IsNotEmpty()
-    @IsEmail()
+    @IsString()
     password: string
 }

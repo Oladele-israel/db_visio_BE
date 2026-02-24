@@ -3,6 +3,9 @@ import { AppService } from './app.service';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import type { Cache } from 'cache-manager';
 
+const ACCESS_TTL = 900000;
+const REFRESH_TTL = 1209600000;
+
 @Controller()
 export class AppController {
   constructor(private readonly appService: AppService,
@@ -15,7 +18,7 @@ export class AppController {
 
   @Get('cache-set')
   async cacheSet() {
-    await this.cacheManager.set('test', 'test-value', 300_000);
+    await this.cacheManager.set('test', 'test-value',ACCESS_TTL );
     console.log(this.cacheManager.stores);
 
     return 'Set Cache';

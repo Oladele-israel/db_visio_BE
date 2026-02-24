@@ -33,15 +33,12 @@ import { CacheModule } from '@nestjs/cache-manager';
 
         return {
           stores: [
-            // L1 Memory
             new Keyv({
               store: new CacheableMemory({
                 ttl: 60000,
                 lruSize: 5000,
               }),
             }),
-
-            // L2 Redis (persistent)
             new KeyvRedis(redisUrl),
           ],
         };
