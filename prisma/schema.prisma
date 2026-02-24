@@ -1,0 +1,85 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client"
+  output   = "../generated/prisma"
+  moduleFormat  = "cjs"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+
+enum DbType {
+  POSTGRES
+  MYSQL
+  SQLITE
+  MSSQL
+}
+
+enum Role {
+  ADMIN
+  EDITOR
+  VIEWER
+}
+
+model User {
+  id            String   @id @default(uuid())
+  email         String   @unique
+  password      String
+  name          String?
+  role          Role     @default(VIEWER)
+
+  connections   DbConnection[]
+
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+
+model DbConnection {
+  id                String   @id @default(uuid())
+
+  userId            String
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  name              String   // Friendly name: "product encom Local DB"
+
+  type              DbType
+
+  host              String
+  port              Int
+  database          String   // database name
+  username          String
+  encryptedPassword String
+
+  ssl               Boolean  @default(false)
+
+  isActive          Boolean  @default(false)
+
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  activeSessions    AgentSession[]
+
+  @@index([userId])
+  @@index([type])
+}
+
+model AgentSession {
+  id            String   @id @default(uuid())
+  agentSessionId String  // sessionId returned by agent
+  isActive      Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  lastUsedAt    DateTime @default(now())
+
+  connectionId  String
+  connection    DbConnection @relation(fields: [connectionId], references: [id], onDelete: Cascade)
+
+  @@index([agentSessionId])
+}
