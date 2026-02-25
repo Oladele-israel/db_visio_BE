@@ -32,7 +32,6 @@ export class AuthMiddleware implements NestMiddleware {
       }
 
       const rawHeader = req.headers['authorization'] || req.headers['Authorization'];
-      console.log('AUTH HEADER:', rawHeader);
       // Ensure we have a string, not array
       const authHeader = Array.isArray(rawHeader) ? rawHeader[0] : rawHeader;
 
@@ -41,7 +40,6 @@ export class AuthMiddleware implements NestMiddleware {
       }
 
       const token = authHeader.replace(/^Bearer\s+/i, '').trim();
-      console.log("this is the token token======>>", token)
       if (!token) {
         throw new UnauthorizedException('Invalid authorization token');
       }

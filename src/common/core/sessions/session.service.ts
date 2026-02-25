@@ -7,7 +7,7 @@ import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import type { Cache } from 'cache-manager';
 import { Logger } from '@nestjs/common';
 
-const ACCESS_TTL = 60000;  //TODO: Abstract this later
+const ACCESS_TTL = 1200000;  //TODO: Abstract this later
 const REFRESH_TTL = 1209600000;
 
 @Injectable()
@@ -27,7 +27,7 @@ export class SessionService {
 
         const session = { sessionId, createdAt: now, lastActiveAt: now, ...payload };
         const refreshPayload = { sessionId, userId: payload.userId };
-        // parrallel  not sequencial execution reduces network trips and latency on api calls
+        
         Promise.allSettled([
             this.cacheManager.set(`session:${sessionId}`, session, ACCESS_TTL),
             this.cacheManager.set(`refresh:${refreshToken}`, refreshPayload, REFRESH_TTL),

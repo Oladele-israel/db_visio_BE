@@ -21,7 +21,6 @@ export class AuthInterceptor implements NestInterceptor {
     const sessionUser = req.user;
 
     if (!sessionUser) {
-            console.log("error")
       throw new UnauthorizedException('Authentication required');
     }
 

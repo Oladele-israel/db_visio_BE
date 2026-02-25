@@ -17,7 +17,7 @@ export class PrismaService
     super({
       adapter,
       // Optional: add logging, errorFormat, etc. if you want
-      log: ['query', 'info', 'warn', 'error'], // useful for debugging
+      // log: ['query', 'info', 'warn', 'error'], // useful for debugging
     });
   }
 
