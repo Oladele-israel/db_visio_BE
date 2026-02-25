@@ -7,7 +7,7 @@ import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import type { Cache } from 'cache-manager';
 import { Logger } from '@nestjs/common';
 
-const ACCESS_TTL = 900000;  //TODO: Abstract this later
+const ACCESS_TTL = 60000;  //TODO: Abstract this later
 const REFRESH_TTL = 1209600000;
 
 @Injectable()
@@ -77,6 +77,8 @@ export class SessionService {
         );
 
         if (!data) return null;
+
+        await this.cacheManager.del(`refresh:${refreshToken}`);
 
         await this.revokeSession(data.sessionId);
 

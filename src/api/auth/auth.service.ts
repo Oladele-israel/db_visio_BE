@@ -58,7 +58,7 @@ export class AuthService {
 
   async refresh(refreshToken: string) {
     const rotated = await this.sessionService.rotateSession(refreshToken);
-    if (!rotated) throw new UnauthorizedException();
+    if (!rotated) throw new UnauthorizedException('invalid refresh token or refresh creds');
 
     const user = await this.userRepo.findFirst({
       where: { id: rotated.userId }
