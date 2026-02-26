@@ -3,7 +3,7 @@ import { User } from 'generated/prisma/client';
 import { CurrentUser } from 'src/common/decorators/auth.decorator';
 import { AuthInterceptor } from 'src/common/interceptors/authUserInterceptor';
 import { DbAgentService } from './db-agent.service';
-import { CreateDbConnectDataDto } from './dto/db-agent.dto';
+import { CreateDbConnectDataDto, QueryParams, RelationQueryInput } from './dto/db-agent.dto';
 
 @UseInterceptors(AuthInterceptor)
 @Controller('db-agent')
@@ -80,4 +80,64 @@ export class DbAgentController {
         return this.dbAgent.connectUserDbConnection(user, id);
     }
 
+    @Get(':id/schema')
+    async getSchema(
+        @CurrentUser() user: User,
+        @Param('id') id: string,
+    ) {
+        this.logger.log(
+            `User ${user.id} fetching schema for connection ${id}`,
+        );
+
+        return this.dbAgent.getDatabaseSchema(user, id);
+    }
+
+    @Get(':id/relation/:table')
+    async getTableRelations(
+        @CurrentUser() user: User,
+        @Param('id') id: string,
+        @Param('table') table: string,
+    ) {
+        this.logger.log(
+            `User ${user.id} fetching relations for table ${table} on connection ${id}`,
+        );
+
+        return this.dbAgent.getTableRelations(user, id, table);
+    }
+
+    @Post(':id/relations/query')
+    async queryRelations(
+        @CurrentUser() user: User,
+        @Param('id') id: string,
+        @Body() body: RelationQueryInput,
+    ) {
+        return this.dbAgent.queryRelations(user, id, body);
+    }
+
+    @Post(':id/:table/query')
+    async queryTable(
+        @CurrentUser() user: User,
+        @Param('id') id: string,
+        @Param('table') table: string,
+        @Body() body: Omit<QueryParams, 'tableName'>,
+    ) {
+        return this.dbAgent.queryTable(user, id, table, body);
+    }
+
+    @Get(':id/:table/rows/:pk/relations/:relationTable')
+    async getRowRelations(
+        @CurrentUser() user: User,
+        @Param('id') id: string,
+        @Param('table') table: string,
+        @Param('pk') pk: string,
+        @Param('relationTable') relationTable: string,
+    ) {
+        return this.dbAgent.getRowRelations(
+            user,
+            id,
+            table,
+            pk,
+            relationTable,
+        );
+    }
 }

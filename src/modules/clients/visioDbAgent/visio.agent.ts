@@ -57,7 +57,135 @@ export class VisioAgentService {
       throw new BadRequestException('Error contacting db agent');
     }
   }
-  
+
+  public async getDbSchema(sessionId: string): Promise<any> {
+    try {
+      const url = `${this.baseUrl}/schema/`;
+      const headers = {
+        // 'x-api-key': this.xApiKey, 
+        'x-session-id': sessionId,
+        'Content-Type': 'application/json',
+      };
+
+      const response = await axios.get(url, { headers });
+      const result = response.data;
+      this.logger.debug(result);
+      if (!result) {
+        this.logger.error(result);
+        throw new BadRequestException('Error contacting db agent');
+      }
+
+      return result;
+    } catch (error) {
+      this.logger.error(error);
+      throw new BadRequestException('Error contacting db agent');
+    }
+  }
+
+  public async getTableRelation(
+    sessionId: string,
+    table: string,
+  ): Promise<any> {
+    try {
+      const url = `${this.baseUrl}/relation/${table}`;
+
+      const headers = {
+        'x-session-id': sessionId,
+        'Content-Type': 'application/json',
+      };
+
+      const response = await axios.get(url, { headers });
+
+      const result = response.data;
+
+      this.logger.debug(result);
+
+      if (!result) {
+        throw new BadRequestException(
+          'Error contacting db agent',
+        );
+      }
+
+      return result;
+    } catch (error) {
+      this.logger.error(error);
+      throw new BadRequestException(
+        'Error contacting db agent',
+      );
+    }
+  }
+
+  public async queryRelations(
+    sessionId: string,
+    payload: any,
+  ): Promise<any> {
+    try {
+      const url = `${this.baseUrl}/query/relations/query`;
+
+      const headers = {
+        'x-session-id': sessionId,
+        'Content-Type': 'application/json',
+      };
+
+      const response = await axios.post(url, payload, { headers });
+
+      return response.data;
+    } catch (error) {
+      this.logger.error(error);
+      throw new BadRequestException(
+        'Error contacting db agent',
+      );
+    }
+  }
+
+  public async queryTable(
+    sessionId: string,
+    payload: any,
+  ): Promise<any> {
+    try {
+      const url = `${this.baseUrl}/query/${payload.tableName}/query`;
+
+      const headers = {
+        'x-session-id': sessionId,
+        'Content-Type': 'application/json',
+      };
+
+      const response = await axios.post(url, payload, { headers });
+
+      return response.data;
+    } catch (error) {
+      this.logger.error(error);
+      throw new BadRequestException(
+        'Error contacting db agent',
+      );
+    }
+  }
+
+  public async getRowRelations(
+    sessionId: string,
+    table: string,
+    pk: string,
+    relationTable: string,
+  ): Promise<any> {
+    try {
+      const url = `${this.baseUrl}/query/${table}/rows/${pk}/relations/${relationTable}`;
+
+      const headers = {
+        'x-session-id': sessionId,
+        'Content-Type': 'application/json',
+      };
+
+      const response = await axios.get(url, { headers });
+
+      return response.data;
+    } catch (error) {
+      this.logger.error(error);
+      throw new BadRequestException(
+        'Error contacting db agent',
+      );
+    }
+  }
+
 }
 
      

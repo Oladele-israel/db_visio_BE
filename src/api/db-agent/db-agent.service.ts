@@ -1,7 +1,7 @@
 import { BadRequestException, Inject, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { DbType, User } from 'generated/prisma/client';
 import { VisioAgentService } from 'src/modules/clients/visioDbAgent/visio.agent';
-import { CreateDbConnectDataDto } from './dto/db-agent.dto';
+import { CreateDbConnectDataDto, QueryParams, RelationQueryInput } from './dto/db-agent.dto';
 import * as bcrypt from 'bcrypt';
 import { DbAgentRepository } from './repositories/db-agent.repository';
 import { HashingService } from 'src/common/hashing/hashing.service';
@@ -208,7 +208,7 @@ export class DbAgentService {
         await this.cacheManager.set(
             cacheKey,
             result.sessionId,
-             604800000 
+            604800000
         );
 
         return {
@@ -217,6 +217,151 @@ export class DbAgentService {
             message: 'new session created',
         };
     }
+
+    async getDatabaseSchema(
+        user: User,
+        connectionId: string,
+    ) {
+        await this.ensureConnectionBelongsToUser(user, connectionId);
+        const sessionId = await this.getActiveSessionOrThrow(
+            user,
+            connectionId,
+        );
+
+        this.logger.debug(
+            `Fetching schema using session ${sessionId}`,
+        );
+
+        const schema = await this.dbAgent.getDbSchema(
+            sessionId,
+        );
+
+        return {
+            success: true,
+            data: schema,
+        };
+    }
+
+    async getTableRelations(
+        user: User,
+        connectionId: string,
+        table: string,
+    ) {
+        await this.ensureConnectionBelongsToUser(user, connectionId);
+
+        const sessionId = await this.getActiveSessionOrThrow(
+            user,
+            connectionId,
+        );
+
+        this.logger.debug(
+            `Fetching relations for table ${table} using session ${sessionId}`,
+        );
+
+        const relations =
+            await this.dbAgent.getTableRelation(sessionId, table);
+
+        return {
+            success: true,
+            data: relations,
+        };
+    }
+
+    async queryRelations(
+        user: User,
+        connectionId: string,
+        body: RelationQueryInput,
+    ) {
+        await this.ensureConnectionBelongsToUser(user, connectionId);
+        // Get session from Redis
+        const sessionId = await this.getActiveSessionOrThrow(
+            user,
+            connectionId,
+        );
+
+        const result = await this.dbAgent.queryRelations(
+            sessionId,
+            body,
+        );
+
+        return {
+            success: true,
+            data: result,
+        };
+    }
+
+    async queryTable(
+        user: User,
+        connectionId: string,
+        table: string,
+        body: Omit<QueryParams, 'tableName'>,
+    ) {
+        await this.ensureConnectionBelongsToUser(user, connectionId);
+
+        const sessionId = await this.getActiveSessionOrThrow(
+            user,
+            connectionId,
+        );
+
+        const result = await this.dbAgent.queryTable(
+            sessionId,
+            {
+                tableName: table,
+                ...body,
+            },
+        );
+
+        return {
+            success: true,
+            data: result,
+        };
+    }
+
+    async getRowRelations(
+        user: User,
+        connectionId: string,
+        table: string,
+        pk: string,
+        relationTable: string,
+    ) {
+        await this.ensureConnectionBelongsToUser(user, connectionId);
+
+        const sessionId = await this.getActiveSessionOrThrow(
+            user,
+            connectionId,
+        );
+
+        const result = await this.dbAgent.getRowRelations(
+            sessionId,
+            table,
+            pk,
+            relationTable,
+        );
+
+        return {
+            success: true,
+            data: result,
+        };
+    }
+
+    private async ensureConnectionBelongsToUser(
+        user: User,
+        connectionId: string,
+    ) {
+        const connection = await this.dbAgentRepo.findFirst({
+            where: {
+                id: connectionId,
+                userId: user.id,
+            },
+        });
+
+        if (!connection) {
+            throw new NotFoundException('Connection not found');
+        }
+
+        return connection;
+    }
+
 
     private getSessionCacheKey(userId: string, connectionId: string) {
         return `agent:session:${userId}:${connectionId}`;
