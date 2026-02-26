@@ -1,9 +1,12 @@
-import { Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Inject, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { DbType, User } from 'generated/prisma/client';
 import { VisioAgentService } from 'src/modules/clients/visioDbAgent/visio.agent';
 import { CreateDbConnectDataDto } from './dto/db-agent.dto';
 import * as bcrypt from 'bcrypt';
 import { DbAgentRepository } from './repositories/db-agent.repository';
+import { HashingService } from 'src/common/hashing/hashing.service';
+import { CACHE_MANAGER } from '@nestjs/cache-manager';
+import type { Cache } from 'cache-manager';
 
 @Injectable()
 export class DbAgentService {
@@ -12,7 +15,8 @@ export class DbAgentService {
     constructor(
         private readonly dbAgent: VisioAgentService,
         private readonly dbAgentRepo: DbAgentRepository,
-
+        private readonly hash: HashingService,
+        @Inject(CACHE_MANAGER) private cacheManager: Cache
     ) { }
 
     async testHello() {
@@ -21,24 +25,26 @@ export class DbAgentService {
 
     async createUserDbCreds(user: User, data: CreateDbConnectDataDto) {
 
-          const dbTypeMap = {
-        'postgres': DbType.POSTGRES,
-        'mysql': DbType.MYSQL,
-        'sqlite': DbType.SQLITE,
-        'mssql': DbType.MSSQL
-    };
+        const encryptedPass = this.hash.encrypt(data.password)
+
+        const dbTypeMap = {
+            'postgres': DbType.POSTGRES,
+            'mysql': DbType.MYSQL,
+            'sqlite': DbType.SQLITE,
+            'mssql': DbType.MSSQL
+        };
 
         const hashedPassword = await bcrypt.hash(data.password, 10);
 
         const connection = await this.dbAgentRepo.create({
             data: {
                 name: data.name,
-                type: dbTypeMap[data.type], 
+                type: dbTypeMap[data.type],
                 host: data.host,
                 port: data.port,
                 database: data.database,
                 username: data.username,
-                encryptedPassword: hashedPassword,
+                encryptedPassword: encryptedPass,
                 ssl: data.ssl ?? false,
                 user: {
                     connect: {
@@ -157,5 +163,79 @@ export class DbAgentService {
         return this.dbAgentRepo.delete({
             where: { id: connection.id },
         });
+    }
+
+    async connectUserDbConnection(
+        user: User,
+        connectionId: string,
+    ) {
+        const connection = await this.dbAgentRepo.findFirst({
+            where: {
+                id: connectionId,
+                userId: user.id,
+            },
+        });
+
+        if (!connection) {
+            throw new NotFoundException('Connection not found');
+        }
+
+        const cacheKey = this.getSessionCacheKey(user.id, connectionId);
+
+        const existingSession = await this.cacheManager.get<string>(cacheKey);
+
+        if (existingSession) {
+            return {
+                success: true,
+                sessionId: existingSession,
+                message: 'existing session reused',
+            };
+        }
+
+        const decryptedPassword = this.hash.decrypt(connection.encryptedPassword);
+
+        const payload = {
+            type: connection.type.toLowerCase(),
+            host: connection.host,
+            port: connection.port,
+            database: connection.database,
+            user: connection.username,
+            password: decryptedPassword,
+        };
+
+        const result = await this.dbAgent.connectToDb(payload);
+
+        await this.cacheManager.set(
+            cacheKey,
+            result.sessionId,
+             604800000 
+        );
+
+        return {
+            success: true,
+            sessionId: result.sessionId,
+            message: 'new session created',
+        };
+    }
+
+    private getSessionCacheKey(userId: string, connectionId: string) {
+        return `agent:session:${userId}:${connectionId}`;
+    }
+
+    private async getActiveSessionOrThrow(
+        user: User,
+        connectionId: string,
+    ): Promise<string> {
+        const cacheKey = this.getSessionCacheKey(user.id, connectionId);
+
+        const sessionId = await this.cacheManager.get<string>(cacheKey);
+
+        if (!sessionId) {
+            throw new BadRequestException(
+                'Session expired. Please reconnect your database.',
+            );
+        }
+
+        return sessionId;
     }
 }

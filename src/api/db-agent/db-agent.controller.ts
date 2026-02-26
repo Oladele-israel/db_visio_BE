@@ -69,4 +69,15 @@ export class DbAgentController {
         this.logger.log(`Deleting DB connection ${id} for user ${user.id}`);
         return this.dbAgent.deleteUserDbCred(user, id);
     }
+
+    @Post(':id/connect')
+    async connectToDatabase(
+        @CurrentUser() user: User,
+        @Param('id') id: string,
+    ) {
+        this.logger.log(`User ${user.id} connecting to DB connection ${id}`);
+
+        return this.dbAgent.connectUserDbConnection(user, id);
+    }
+
 }

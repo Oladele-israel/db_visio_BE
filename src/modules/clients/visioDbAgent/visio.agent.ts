@@ -33,8 +33,31 @@ export class VisioAgentService {
       this.logger.error(error);
       throw new BadRequestException('Error contacting db agent');
     }
-      
+  }
+
+   public async connectToDb(data:any): Promise<any> {
+    try {
+      const url = `${this.baseUrl}/db/connect`;
+      const headers = {
+        // 'x-api-key': this.xApiKey, 
+        'Content-Type': 'application/json',
+      };
+
+      const response = await axios.post(url, data, { headers },);
+      const result = response.data;
+      this.logger.debug(result);
+      if (!result) {
+          this.logger.error(result);
+          throw new BadRequestException('Error contacting db agent');
+      }
+
+      return result;
+    } catch (error) {
+      this.logger.error(error);
+      throw new BadRequestException('Error contacting db agent');
+    }
   }
   
 }
 
+     
