@@ -43,6 +43,16 @@ export class DbAgentController {
         );
     }
 
+    @Delete('schema/cache/:id')
+    async invalidateSchemaCache(
+        @CurrentUser() user: User,
+        @Param('id') id: string,
+    ) {
+        this.logger.log(`User ${user.id} invalidating schema cache for connection ${id}`);
+        return this.dbAgent.invalidateConnectionSchema(user, id);
+    }
+
+
     @Get(':id')
     async getSingle(
         @CurrentUser() user: User,
@@ -55,7 +65,7 @@ export class DbAgentController {
     async update(
         @CurrentUser() user: User,
         @Param('id') id: string,
-        @Body() dto: CreateDbConnectDataDto,
+        @Body() dto: any,
     ) {
         this.logger.log(`Updating DB connection ${id} for user ${user.id}`);
         return this.dbAgent.updateUserDbCred(user, dto, id);

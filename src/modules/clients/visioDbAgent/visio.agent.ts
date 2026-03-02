@@ -186,6 +186,29 @@ export class VisioAgentService {
     }
   }
 
-}
+  public async invalidateSchemaCache(
+    sessionId: string,
+  ): Promise<any> {
+    try {
+      const url = `${this.baseUrl}/schema/cache`;
 
+      const headers = {
+        'x-session-id': sessionId,
+        'Content-Type': 'application/json',
+      };
+
+      const response = await axios.delete(url, { headers });
+       this.logger.debug(`Schema cache invalidated for session ${sessionId}`);
+            return response.data;
+
+      return response.data;
+    } catch (error) {
+      this.logger.error(error);
+      throw new BadRequestException(
+        'Error contacting db agent',
+      );
+    }
+  }
+
+}
      

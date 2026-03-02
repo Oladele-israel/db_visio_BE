@@ -66,4 +66,25 @@ export class AuthController {
             expiresIn: tokens.expiresIn,
         };
     }
+
+
+    @Post('logout')
+    async logout(
+        @Req() req: Request,
+        @Res({ passthrough: true }) res: Response
+    ) {
+        const refreshToken = req.cookies?.refreshToken;
+
+        if (refreshToken) {
+            await this.authService.logout(refreshToken);
+        }
+
+        res.clearCookie('refreshToken', {
+            httpOnly: true,
+            sameSite: 'lax',
+            secure: false,
+        });
+
+        return { message: 'Logged out successfully' };
+    }
 }

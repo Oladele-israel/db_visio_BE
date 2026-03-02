@@ -140,7 +140,7 @@ export class DbAgentService {
         return connection;
     }
 
-    async updateUserDbCred(user: User, data: CreateDbConnectDataDto, connectionId: string) {
+    async updateUserDbCred(user: User, data: any, connectionId: string) {
         const dataToUpdate: any = { ...data };
 
         if (data.password) {
@@ -165,31 +165,39 @@ export class DbAgentService {
         });
     }
 
-    async connectUserDbConnection(
-        user: User,
-        connectionId: string,
-    ) {
+   async connectUserDbConnection(user: User, connectionId: string) {
         const connection = await this.dbAgentRepo.findFirst({
-            where: {
-                id: connectionId,
-                userId: user.id,
-            },
+            where: { id: connectionId, userId: user.id },
         });
 
-        if (!connection) {
-            throw new NotFoundException('Connection not found');
-        }
+        if (!connection) throw new NotFoundException('Connection not found');
 
         const cacheKey = this.getSessionCacheKey(user.id, connectionId);
 
-        const existingSession = await this.cacheManager.get<string>(cacheKey);
-
-        if (existingSession) {
-            return {
-                success: true,
-                sessionId: existingSession,
-                message: 'existing session reused',
-            };
+        // FIX: Never reuse an existing session blindly.
+        //
+        // The old code returned a cached sessionId if one existed, which meant
+        // switching databases on the same connectionId would silently reuse a
+        // session already pointed at the OLD database on the agent side.
+        //
+        // Now we ALWAYS create a fresh session on connect(). This is the single
+        // source of truth: the agent's session IS the database connection.
+        // The agent's own session pool handles cleanup of old sessions.
+        //
+        // We also bust the agent-side schema cache for any prior session tied
+        // to this connection, so stale schema is never served after a reconnect.
+        const existingSessionId = await this.cacheManager.get<string>(cacheKey);
+        if (existingSessionId) {
+            this.logger.debug(
+                `Invalidating stale schema cache for session ${existingSessionId} before reconnect`
+            );
+            // Best-effort: if the agent is unreachable this should not block reconnection
+            try {
+                await this.dbAgent.invalidateSchemaCache(existingSessionId);
+            } catch (err) {
+                this.logger.warn(`Could not invalidate schema cache for old session: ${err.message}`);
+            }
+            await this.cacheManager.del(cacheKey);
         }
 
         const decryptedPassword = this.hash.decrypt(connection.encryptedPassword);
@@ -205,11 +213,7 @@ export class DbAgentService {
 
         const result = await this.dbAgent.connectToDb(payload);
 
-        await this.cacheManager.set(
-            cacheKey,
-            result.sessionId,
-            604800000
-        );
+        await this.cacheManager.set(cacheKey, result.sessionId, 604800000);
 
         return {
             success: true,
@@ -218,28 +222,25 @@ export class DbAgentService {
         };
     }
 
-    async getDatabaseSchema(
-        user: User,
-        connectionId: string,
-    ) {
+    async invalidateConnectionSchema(user: User, connectionId: string) {
         await this.ensureConnectionBelongsToUser(user, connectionId);
-        const sessionId = await this.getActiveSessionOrThrow(
-            user,
-            connectionId,
-        );
 
-        this.logger.debug(
-            `Fetching schema using session ${sessionId}`,
-        );
+        const sessionId = await this.getActiveSessionOrThrow(user, connectionId);
 
-        const schema = await this.dbAgent.getDbSchema(
-            sessionId,
-        );
+        await this.dbAgent.invalidateSchemaCache(sessionId);
 
-        return {
-            success: true,
-            data: schema,
-        };
+        return { success: true, invalidated: true };
+    }
+
+     async getDatabaseSchema(user: User, connectionId: string) {
+        await this.ensureConnectionBelongsToUser(user, connectionId);
+        const sessionId = await this.getActiveSessionOrThrow(user, connectionId);
+
+        this.logger.debug(`Fetching schema using session ${sessionId}`);
+
+        const schema = await this.dbAgent.getDbSchema(sessionId);
+
+        return { success: true, data: schema };
     }
 
     async getTableRelations(
@@ -343,6 +344,7 @@ export class DbAgentService {
             data: result,
         };
     }
+    
 
     private async ensureConnectionBelongsToUser(
         user: User,
@@ -383,4 +385,6 @@ export class DbAgentService {
 
         return sessionId;
     }
+
+
 }

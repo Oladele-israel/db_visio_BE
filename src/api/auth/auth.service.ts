@@ -1,10 +1,12 @@
-import { BadRequestException, Injectable, NotFoundException, UnauthorizedException } from '@nestjs/common';
+import { BadRequestException, Inject, Injectable, NotFoundException, UnauthorizedException } from '@nestjs/common';
 import { UserService } from '../user/user.service';
 import { SessionService } from 'src/common/core/sessions/session.service';
 import * as bcrypt from 'bcrypt';
 import { loginUserDto, registerUserDto } from './Dtos/auth.dto';
 import { UsersRepository } from '../user/repositories/user.repository';
 import { User } from 'generated/prisma/client';
+import { CACHE_MANAGER } from '@nestjs/cache-manager';
+import type { Cache } from 'cache-manager';
 
 @Injectable()
 export class AuthService {
@@ -12,6 +14,7 @@ export class AuthService {
     private readonly userService: UserService,
     private readonly sessionService: SessionService,
     private readonly userRepo: UsersRepository,
+    @Inject(CACHE_MANAGER) private cacheManager: Cache
   ) {}
 
   public async registerUser(dto: registerUserDto){
@@ -35,7 +38,7 @@ export class AuthService {
     return newUser;
   }
 
-    public async authenticateUser(user: User) {
+  public async authenticateUser(user: User) {
         return this.sessionService.createSession({
             userId: user.id,
             role: user.role
@@ -51,7 +54,7 @@ export class AuthService {
     if (!user) throw new NotFoundException("user not found in our records please check creds")
 
     const valid = await bcrypt.compare(dto.password, user.password);
-    if (!valid) throw new UnauthorizedException();
+    if (!valid) throw new BadRequestException("invalid email or password");
 
     return user
   }
@@ -72,8 +75,17 @@ export class AuthService {
     });
   }
 
-  async logout(sessionId: string) {
-    await this.sessionService.revokeSession(sessionId);
+  async logout(refreshToken: string) {
+    const data = await this.cacheManager.get<{
+      sessionId: string;
+      userId: string;
+    }>(`refresh:${refreshToken}`);
+
+    if (!data) return;
+
+    await this.cacheManager.del(`refresh:${refreshToken}`);
+
+    await this.sessionService.revokeSession(data.sessionId);
   }
 
   async logoutAll(userId: string) {
