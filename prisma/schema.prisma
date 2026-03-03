@@ -36,6 +36,7 @@ model User {
   role          Role     @default(VIEWER)
 
   connections   DbConnection[]
+  authToken    PersonalAccessToken[]
 
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
@@ -82,4 +83,21 @@ model AgentSession {
   connection    DbConnection @relation(fields: [connectionId], references: [id], onDelete: Cascade)
 
   @@index([agentSessionId])
+}
+
+model PersonalAccessToken {
+  id            String   @id @default(uuid())
+  userId      String
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  name        String             
+  tokenHash   String   @unique          
+  
+  expiresAt   DateTime?                 
+
+  createdAt   DateTime  @default(now())
+  revokedAt   DateTime?          
+  
+  @@index([userId])
+  @@index([tokenHash])
 }

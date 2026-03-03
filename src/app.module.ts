@@ -12,6 +12,7 @@ import { CacheableMemory } from 'cacheable';
 import { CacheModule } from '@nestjs/cache-manager';
 import { DbAgentModule } from './api/db-agent/db-agent.module';
 import { HashingModule } from './common/hashing/hashing.module';
+import { AuthService } from './api/auth/auth.service';
 
 @Module({
  imports: [

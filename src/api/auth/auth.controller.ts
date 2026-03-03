@@ -1,6 +1,6 @@
 import { Controller, Post, Body, Req, UseGuards, Get, UseInterceptors, Res, UnauthorizedException } from '@nestjs/common';
 import { AuthService } from './auth.service';
-import { loginUserDto, registerUserDto } from './Dtos/auth.dto';
+import { CreatePATDto, loginUserDto, registerUserDto } from './Dtos/auth.dto';
 import { AuthInterceptor } from 'src/common/interceptors/authUserInterceptor';
 import { CurrentUser } from 'src/common/decorators/auth.decorator';
 import type { User } from 'generated/prisma/client';
@@ -86,5 +86,11 @@ export class AuthController {
         });
 
         return { message: 'Logged out successfully' };
+    }
+
+    @Post("patToken")
+    @UseInterceptors(AuthInterceptor)
+    async create(@CurrentUser() user: User, @Body() dto: CreatePATDto) {
+        return this.authService.createToken(user, dto);
     }
 }
