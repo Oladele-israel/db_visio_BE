@@ -51,3 +51,45 @@ export class PATResponseDto {
 export class CreatedPATResponseDto extends PATResponseDto {
     token: string; // raw token — returned ONCE, never stored, never shown again
 }
+
+
+
+export class ChangePasswordDto {
+    @IsNotEmpty()
+    currentPassword: string;
+
+    @IsString()
+    @MinLength(8, { message: 'New password must be at least 8 characters' })
+    newPassword: string;
+}
+
+
+export class RequestOtpDto {
+    @IsEmail({}, { message: 'Please provide a valid email address' })
+    @IsNotEmpty()
+    email: string;
+}
+
+
+export class VerifyOtpDto {
+    @IsEmail()
+    email: string;
+
+    @IsString()
+    @IsNotEmpty()
+    @Matches(/^\d{6}$/, { message: 'OTP must be exactly 6 digits' })
+    otp: string;
+}
+
+export class ResetPasswordDto {
+    @IsEmail()
+    email: string;
+
+    @IsString()
+    @IsNotEmpty()
+    resetToken: string;
+
+    @IsString()
+    @MinLength(8, { message: 'Password must be at least 8 characters' })
+    newPassword: string;
+}

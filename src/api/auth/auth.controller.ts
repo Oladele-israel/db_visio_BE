@@ -1,6 +1,6 @@
-import { Controller, Post, Body, Req, UseGuards, Get, UseInterceptors, Res, UnauthorizedException } from '@nestjs/common';
+import { Controller, Post, Body, Req, UseGuards, Get, UseInterceptors, Res, UnauthorizedException, Patch } from '@nestjs/common';
 import { AuthService } from './auth.service';
-import { CreatePATDto, loginUserDto, registerUserDto } from './Dtos/auth.dto';
+import { ChangePasswordDto, CreatePATDto, loginUserDto, registerUserDto, RequestOtpDto, ResetPasswordDto, VerifyOtpDto } from './Dtos/auth.dto';
 import { AuthInterceptor } from 'src/common/interceptors/authUserInterceptor';
 import { CurrentUser } from 'src/common/decorators/auth.decorator';
 import type { User } from 'generated/prisma/client';
@@ -93,4 +93,31 @@ export class AuthController {
     async create(@CurrentUser() user: User, @Body() dto: CreatePATDto) {
         return this.authService.createToken(user, dto);
     }
+
+    @Patch('password')
+    @UseInterceptors(AuthInterceptor)
+    async changePassword(
+        @CurrentUser() user: User,
+        @Body() dto: ChangePasswordDto,
+    ) {
+        return this.authService.changePassword(user, dto);
+    }
+
+    @Post('reset/request-otp')
+    async requestOtp(
+        @Body() dto: RequestOtpDto,
+    ) {
+        return this.authService.requestOtp(dto);
+    }
+
+    @Post('reset/verify-otp')
+    async verifyOtp(@Body() dto: VerifyOtpDto) {
+        return this.authService.verifyOtp(dto);
+    }
+
+    @Post('reset/password')
+    async resetPassword(@Body() dto: ResetPasswordDto) {
+        return this.authService.resetPassword(dto);
+    }
+
 }

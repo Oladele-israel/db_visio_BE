@@ -13,6 +13,7 @@ import { CacheModule } from '@nestjs/cache-manager';
 import { DbAgentModule } from './api/db-agent/db-agent.module';
 import { HashingModule } from './common/hashing/hashing.module';
 import { AuthService } from './api/auth/auth.service';
+import { MailModule } from './common/email/mail.module';
 
 @Module({
  imports: [
@@ -49,6 +50,7 @@ import { AuthService } from './api/auth/auth.service';
     }),
     DbAgentModule,
     HashingModule,
+    MailModule,
   ],
   controllers: [AppController],
   providers: [AppService],
@@ -63,6 +65,9 @@ export class AppModule implements NestModule {
         { path: '/auth/refresh', method: RequestMethod.POST },
         { path: '/cache-set', method: RequestMethod.GET },
         { path: '/cache-get', method: RequestMethod.GET },
+        { path: '/auth/reset/request-otp', method: RequestMethod.POST },
+        { path: '/auth/reset/verify-otp', method: RequestMethod.POST },
+        { path: '/auth/reset/password', method: RequestMethod.POST },
       )
       .forRoutes('*')
   }
