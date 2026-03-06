@@ -1,6 +1,6 @@
 // dto/create-db-connection.dto.ts
-import { IsString, IsNumber, Min, IsNotEmpty, IsBoolean, IsOptional, IsIn } from 'class-validator';
-import { Transform } from 'class-transformer';
+import { IsString, IsNumber, Min, IsNotEmpty, IsBoolean, IsOptional, IsIn, ValidateNested, IsObject, Max } from 'class-validator';
+import { Transform, Type } from 'class-transformer';
 
 export class CreateDbConnectDataDto {
     @IsString()
@@ -40,26 +40,77 @@ export class CreateDbConnectDataDto {
     ssl?: boolean;
 }
 
-export interface RelationQueryInput {
-  sourceTable: string
-  sourceWhere: Record<string, any>
-  targetTable: string
-  options?: {
-    limit?: number
-    offset?: number
-    orderBy?: string
-  }
+class OrderByDto {
+  @IsString()
+  @IsNotEmpty()
+  column: string
+
+  @IsIn(['asc', 'desc'])
+  direction: 'asc' | 'desc'
 }
 
-export interface QueryParams {
+export class QueryParams {
+  @IsString()
+  @IsNotEmpty()
   tableName: string
+
+  @IsOptional()
+  @IsNumber()
+  @Min(1)
+  @Max(100)
   limit?: number
+
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
   offset?: number
-  orderBy?: {
-    column: string
-    direction: 'asc' | 'desc'
-  }
-  filters?: {
-    [columnName: string]: any
-  }
+
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => OrderByDto)
+  orderBy?: OrderByDto
+
+  @IsOptional()
+  @IsObject()
+  filters?: Record<string, any>
+}
+
+/**
+ * Replaces RelationQueryInput entirely.
+ * Matches TraverseRelationPayload on VisioAgentService exactly.
+ */
+export class TraverseRelationDto {
+  @IsString()
+  @IsNotEmpty()
+  sourceTable: string
+
+  @IsString()
+  @IsNotEmpty()
+  sourceColumn: string
+
+  // string | number — accept both, agent handles coercion
+  @IsNotEmpty()
+  sourceValue: string | number
+
+  @IsIn(['belongsTo', 'hasMany'])
+  relationType: 'belongsTo' | 'hasMany'
+
+  @IsString()
+  @IsNotEmpty()
+  targetTable: string
+
+  @IsString()
+  @IsNotEmpty()
+  targetColumn: string
+
+  @IsOptional()
+  @IsNumber()
+  @Min(1)
+  @Max(100)
+  limit?: number
+
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  offset?: number
 }
