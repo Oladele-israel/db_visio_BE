@@ -10,7 +10,7 @@ export interface ConnectDbPayload {
   host: string;
   port: number;
   database: string;
-  username: string;
+  user: string;
   password: string;
   ssl?: boolean;
 }
@@ -124,6 +124,7 @@ export class VisioAgentService {
    * Returns { status: 'connected', sessionId: string }
    */
   public async connectToDb(data: ConnectDbPayload): Promise<any> {
+    console.log("this is the data from the backend ======>>", data)
     try {
       const response = await axios.post(
         `${this.baseUrl}/db/connect`,

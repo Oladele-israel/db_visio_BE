@@ -162,7 +162,7 @@ export class DbAgentService {
       host:     connection.host,
       port:     connection.port,
       database: connection.database,
-      username: connection.username,   // was `user:` — wrong key
+      user: connection.username,   // was `user:` — wrong key
       password: decryptedPassword,
       ssl:      connection.ssl,
     })
